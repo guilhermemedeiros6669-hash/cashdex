@@ -1,11 +1,14 @@
 {
   "version": 2,
+  "builds": [
+    { "src": "server.js", "use": "@vercel/node" },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "*.css", "use": "@vercel/static" },
+    { "src": "*.js", "use": "@vercel/static" }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/login.html" },
-    { "source": "/cadastro", "destination": "/cadastro.html" },
-    { "source": "/home", "destination": "/home.html" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/$1" }
+    { "source": "/login", "destination": "/server.js" },
+    { "source": "/cadastro-api", "destination": "/server.js" }
   ]
 }
