@@ -3,6 +3,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
+const axios = require('axios'); // Adicionado para Open Finance
 
 const app = express();
 app.use(cors());
@@ -12,7 +13,47 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_sn7YBbghO4Hx@ep-cool-bonus-ac98kvrr-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require',
 });
 
-// --- CADASTRO ---
+// --- OPEN FINANCE (LARABANK) ---
+
+// Inicia o fluxo de autorização
+app.get('/conectar-larabank', (req, res) => {
+    const authUrl = `${process.env.LARABANK_AUTH_URL}?response_type=code&client_id=${process.env.LARABANK_CLIENT_ID}&redirect_uri=https://cashdex-ztjv.vercel.app/callback&scope=accounts`;
+    res.redirect(authUrl);
+});
+
+// Recebe o código do LaraBank e troca por um Token
+app.get('/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.redirect('/home?erro=sem_codigo');
+
+    try {
+        const response = await axios.post(process.env.LARABANK_TOKEN_URL, {
+            grant_type: 'authorization_code',
+            code: code,
+            client_id: process.env.LARABANK_CLIENT_ID,
+            client_secret: process.env.LARABANK_CLIENT_SECRET,
+            redirect_uri: 'https://cashdex-ztjv.vercel.app/callback'
+        });
+
+        const token = response.data.access_token;
+        
+        // Busca os dados da conta usando o Token recebido
+        const accountRes = await axios.get(process.env.LARABANK_ACCOUNTS_URL, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const conta = accountRes.data[0]; // Pega a primeira conta vinculada
+        
+        // Redireciona de volta para a Home enviando os dados do banco externo via URL
+        res.redirect(`/home?conectado=true&banco=LaraBank&saldo=${conta.balance}`);
+    } catch (error) {
+        console.error('Erro Open Finance:', error.response?.data || error.message);
+        res.redirect('/home?erro=falha_integracao');
+    }
+});
+
+// --- ROTAS ORIGINAIS (MANTIDAS) ---
+
 app.post('/cadastro-api', async (req, res) => {
   const { nome, email, cpf, senha, endereco, nascimento } = req.body;
   const cpfLimpo = cpf.replace(/\D/g, '');
@@ -28,7 +69,6 @@ app.post('/cadastro-api', async (req, res) => {
   }
 });
 
-// --- LOGIN ---
 app.post('/login-api', async (req, res) => {
   const { cpf, senha } = req.body;
   const cpfLimpo = cpf.replace(/\D/g, '');
