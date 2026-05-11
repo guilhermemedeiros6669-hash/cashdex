@@ -2,19 +2,23 @@
   "version": 2,
   "builds": [
     { "src": "server.js", "use": "@vercel/node" },
-    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "login.html", "use": "@vercel/static" },
+    { "src": "cadastro.html", "use": "@vercel/static" },
+    { "src": "home.html", "use": "@vercel/static" },
     { "src": "*.js", "use": "@vercel/static" },
     { "src": "*.css", "use": "@vercel/static" }
   ],
   "rewrites": [
-    { "source": "/", "destination": "/login.html" },
-    { "source": "/home", "destination": "/home.html" },
-    { "source": "/cadastro-api", "destination": "/server.js" },
-    { "source": "/login-api", "destination": "/server.js" },
-    { "source": "/saldo/(.*)", "destination": "/server.js" },
-    { "source": "/extrato/(.*)", "destination": "/server.js" },
-    { "source": "/deposito", "destination": "/server.js" },
-    { "source": "/saque", "destination": "/server.js" },
-    { "source": "/transferencia", "destination": "/server.js" }
+    { "source": "/", "destination": "login.html" },
+    { "source": "/home", "destination": "home.html" },
+    { "source": "/cadastro", "destination": "cadastro.html" },
+    { "source": "/cadastro-api", "destination": "server.js" },
+    { "source": "/login-api", "destination": "server.js" },
+    { "source": "/saldo/(.*)", "destination": "server.js" },
+    { "source": "/extrato/(.*)", "destination": "server.js" },
+    { "source": "/deposito", "destination": "server.js" },
+    { "source": "/saque", "destination": "server.js" },
+    { "source": "/transferencia", "destination": "server.js" }
   ]
 }
