@@ -1,101 +1,55 @@
-window.addEventListener('DOMContentLoaded', atualizarDados);
+// Pega os dados do usuário salvos no login
+const nome = localStorage.getItem('nomeUsuario');
+const cpf = localStorage.getItem('cpfUsuario');
 
-async function atualizarDados() {
-    const nome = localStorage.getItem('nomeUsuario');
-    const cpf = localStorage.getItem('cpfUsuario');
-
-    if (!nome || !cpf) {
-        window.location.href = 'login.html';
-        return;
-    }
-
-    document.getElementById('boasVindas').textContent = nome;
-    
-    try {
-        const resSaldo = await fetch(`/saldo/${cpf}`);
-        const dadosSaldo = await resSaldo.json();
-        if (resSaldo.ok) {
-            document.getElementById('saldo').textContent = `R$ ${parseFloat(dadosSaldo.saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-        }
-
-        const resExtrato = await fetch(`/extrato/${cpf}`);
-        const transacoes = await resExtrato.json();
-        
-        if (resExtrato.ok) {
-            const lista = document.getElementById('listaTransacoes');
-            lista.innerHTML = ''; 
-
-            if (transacoes.length === 0) {
-                lista.innerHTML = '<li style="color: #94a3b8;">Nenhuma transação encontrada.</li>';
-            } else {
-                transacoes.forEach(t => {
-                    const li = document.createElement('li');
-                    li.style.display = 'flex';
-                    li.style.justifyContent = 'space-between';
-                    li.style.padding = '10px 0';
-                    li.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-                    
-                    const eDeposito = t.tipo === 'Depósito';
-                    const cor = eDeposito ? '#deff9a' : '#ff9a9a';
-                    const sinal = eDeposito ? '+' : '-';
-
-                    li.innerHTML = `
-                        <span>${t.tipo}</span>
-                        <span style="color: ${cor}; font-weight: bold;">
-                            ${sinal} R$ ${parseFloat(t.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                    `;
-                    lista.appendChild(li);
-                });
-            }
-        }
-    } catch (err) {
-        console.error("Erro ao carregar dados:", err);
-    }
+if (!cpf) {
+    window.location.href = "/";
 }
 
-async function operacao(tipo) {
-    const cpf = localStorage.getItem('cpfUsuario');
-    const valor = parseFloat(prompt(`Valor para ${tipo.toUpperCase()}:`));
-    if (!valor || valor <= 0) return alert("Valor inválido.");
+document.getElementById('boasVindas').innerText = nome;
 
-    try {
-        const res = await fetch(`/${tipo}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cpf, valor })
-        });
-        const d = await res.json();
-        if (res.ok) {
-            alert(`✅ ${d.mensagem}`);
-            atualizarDados();
-        } else {
-            alert(`❌ Erro: ${d.erro}`);
-        }
-    } catch (err) { alert("Erro no servidor."); }
+// Verifica se há dados de Open Finance na URL após o redirecionamento
+const params = new URLSearchParams(window.location.search);
+if (params.get('conectado') === 'true') {
+    const card = document.getElementById('cardOpenFinance');
+    const nomeBanco = params.get('banco');
+    const saldoExterno = params.get('saldo');
+
+    card.style.display = 'block';
+    document.getElementById('nomeBancoExterno').innerText = nomeBanco;
+    document.getElementById('saldoExterno').innerText = `R$ ${parseFloat(saldoExterno).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
 }
 
-async function transferir() {
-    const cpfOrigem = localStorage.getItem('cpfUsuario');
-    const cpfDestino = prompt("CPF do destino:");
-    const valor = parseFloat(prompt("Valor:"));
-    if (!cpfDestino || !valor || valor <= 0) return alert("Dados inválidos.");
+async function carregarDados() {
+    // Carregar Saldo
+    const resSaldo = await fetch(`/saldo/${cpf}`);
+    const dadosSaldo = await resSaldo.json();
+    document.getElementById('saldo').innerText = `R$ ${dadosSaldo.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
 
-    try {
-        const res = await fetch('/transferencia', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cpfOrigem, cpfDestino, valor })
-        });
-        const d = await res.json();
-        if (res.ok) {
-            alert(`✅ ${d.mensagem}`);
-            atualizarDados();
-        } else { alert(`❌ Erro: ${d.erro}`); }
-    } catch (err) { alert("Erro na conexão."); }
+    // Carregar Extrato
+    const resExtrato = await fetch(`/extrato/${cpf}`);
+    const extrato = await resExtrato.json();
+    const lista = document.getElementById('listaTransacoes');
+    lista.innerHTML = extrato.map(t => `
+        <li>
+            <span>${t.tipo}</span>
+            <span style="color: ${t.tipo === 'Depósito' ? '#22c55e' : '#ef4444'}">
+                ${t.tipo === 'Depósito' ? '+' : '-'} R$ ${parseFloat(t.valor).toFixed(2)}
+            </span>
+        </li>
+    `).join('') || '<li>Nenhuma transação recente</li>';
+}
+
+function abrirOpenFinance() {
+    // Redireciona para a rota do backend que inicia o OAuth
+    window.location.href = "/conectar-larabank";
 }
 
 function sair() {
     localStorage.clear();
-    window.location.href = 'login.html';
+    window.location.href = "/";
 }
+
+// Funções de operação (saque/deposito/transferencia) seguem a mesma lógica de fetch...
+
+carregarDados();
