@@ -7,6 +7,8 @@
     { "src": "*.css", "use": "@vercel/static" }
   ],
   "rewrites": [
+    { "source": "/api/oauth/(.*)", "destination": "server.js" },
+    { "source": "/api/open-finance/provider/(.*)", "destination": "server.js" },
     { "source": "/cadastro-api", "destination": "server.js" },
     { "source": "/login-api", "destination": "server.js" },
     { "source": "/saldo/(.*)", "destination": "server.js" },
