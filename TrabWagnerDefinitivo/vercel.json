@@ -8,6 +8,7 @@
   ],
   "rewrites": [
     { "source": "/", "destination": "/login.html" },
+    { "source": "/home", "destination": "/home.html" },
     { "source": "/cadastro-api", "destination": "/server.js" },
     { "source": "/login-api", "destination": "/server.js" },
     { "source": "/saldo/(.*)", "destination": "/server.js" },
