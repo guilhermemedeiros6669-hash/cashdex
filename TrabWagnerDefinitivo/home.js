@@ -12,15 +12,13 @@ async function atualizarDados() {
     document.getElementById('boasVindas').textContent = nome;
     
     try {
-        // 1. Busca o Saldo no servidor
-        const resSaldo = await fetch(`http://localhost:3000/saldo/${cpf}`);
+        const resSaldo = await fetch(`/saldo/${cpf}`);
         const dadosSaldo = await resSaldo.json();
         if (resSaldo.ok) {
             document.getElementById('saldo').textContent = `R$ ${parseFloat(dadosSaldo.saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
         }
 
-        // 2. Busca o Extrato
-        const resExtrato = await fetch(`http://localhost:3000/extrato/${cpf}`);
+        const resExtrato = await fetch(`/extrato/${cpf}`);
         const transacoes = await resExtrato.json();
         
         if (resExtrato.ok) {
@@ -52,42 +50,17 @@ async function atualizarDados() {
             }
         }
     } catch (err) {
-        console.error("Erro ao carregar dados da Home:", err);
+        console.error("Erro ao carregar dados:", err);
     }
-}
-
-// SIMULAÇÃO DE OPEN FINANCE
-function abrirOpenFinance() {
-    const banco = prompt("Digite o nome do banco que deseja conectar (Ex: Nubank, Itaú, Inter):");
-    
-    if (!banco) return;
-
-    alert(`Conectando ao portal do ${banco}... Aguarde a autorização.`);
-
-    // Simula o tempo de resposta da "API" do outro banco
-    setTimeout(() => {
-        const saldoSimulado = (Math.random() * 10000).toFixed(2);
-        
-        const card = document.getElementById('cardOpenFinance');
-        const nomeTxt = document.getElementById('nomeBancoExterno');
-        const saldoTxt = document.getElementById('saldoExterno');
-
-        card.style.display = 'block';
-        nomeTxt.textContent = `Saldo ${banco}`;
-        saldoTxt.textContent = `R$ ${parseFloat(saldoSimulado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-        
-        alert(`✅ Integração via Open Finance com o ${banco} concluída!`);
-    }, 2000);
 }
 
 async function operacao(tipo) {
     const cpf = localStorage.getItem('cpfUsuario');
     const valor = parseFloat(prompt(`Valor para ${tipo.toUpperCase()}:`));
-
-    if (!valor || valor <= 0) return alert("Por favor, digite um valor válido.");
+    if (!valor || valor <= 0) return alert("Valor inválido.");
 
     try {
-        const res = await fetch(`http://localhost:3000/${tipo}`, {
+        const res = await fetch(`/${tipo}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cpf, valor })
@@ -99,20 +72,17 @@ async function operacao(tipo) {
         } else {
             alert(`❌ Erro: ${d.erro}`);
         }
-    } catch (err) {
-        alert("Erro no servidor.");
-    }
+    } catch (err) { alert("Erro no servidor."); }
 }
 
 async function transferir() {
     const cpfOrigem = localStorage.getItem('cpfUsuario');
-    const cpfDestino = prompt("CPF do destino (apenas números):");
-    const valor = parseFloat(prompt("Valor da transferência:"));
-
+    const cpfDestino = prompt("CPF do destino:");
+    const valor = parseFloat(prompt("Valor:"));
     if (!cpfDestino || !valor || valor <= 0) return alert("Dados inválidos.");
 
     try {
-        const res = await fetch('http://localhost:3000/transferencia', {
+        const res = await fetch('/transferencia', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cpfOrigem, cpfDestino, valor })
@@ -121,12 +91,8 @@ async function transferir() {
         if (res.ok) {
             alert(`✅ ${d.mensagem}`);
             atualizarDados();
-        } else {
-            alert(`❌ Erro: ${d.erro}`);
-        }
-    } catch (err) {
-        alert("Erro na conexão.");
-    }
+        } else { alert(`❌ Erro: ${d.erro}`); }
+    } catch (err) { alert("Erro na conexão."); }
 }
 
 function sair() {
