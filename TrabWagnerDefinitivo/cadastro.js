@@ -6,7 +6,7 @@ if (form) {
         
         const dados = {
             nome: document.getElementById('nome').value,
-            cpf: document.getElementById('cpf').value.replace(/\D/g, ''), // Limpa CPF
+            cpf: document.getElementById('cpf').value.replace(/\D/g, ''),
             email: document.getElementById('email').value,
             senha: document.getElementById('senha').value,
             endereco: document.getElementById('endereco').value,
@@ -14,7 +14,8 @@ if (form) {
         };
 
         try {
-            const resposta = await fetch('http://localhost:3000/cadastro', {
+            // Mudança aqui: usando rota relativa para a Vercel
+            const resposta = await fetch('/cadastro-api', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dados)
@@ -28,7 +29,7 @@ if (form) {
                 alert("Erro: " + erro.erro);
             }
         } catch (err) {
-            alert("Servidor desligado.");
+            alert("Erro na conexão com o servidor.");
         }
     });
 }
