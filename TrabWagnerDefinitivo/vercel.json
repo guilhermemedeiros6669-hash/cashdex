@@ -16,6 +16,8 @@
     { "source": "/extrato/(.*)", "destination": "server.js" },
     { "source": "/deposito", "destination": "server.js" },
     { "source": "/saque", "destination": "server.js" },
-    { "source": "/transferencia", "destination": "server.js" }
+    { "source": "/transferencia", "destination": "server.js" },
+    { "source": "/conectar-larabank", "destination": "server.js" },
+    { "source": "/callback", "destination": "server.js" }
   ]
 }
