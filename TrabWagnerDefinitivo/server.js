@@ -9,23 +9,27 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Conexão com o Banco de Dados (Neon)
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_sn7YBbghO4Hx@ep-cool-bonus-ac98kvrr-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require',
+  connectionString: process.env.DATABASE_URL,
 });
 
 // --- OPEN FINANCE (LARABANK) ---
 
+// Rota para iniciar a conexão com o LaraBank
 app.get('/conectar-larabank', (req, res) => {
     const redirectUri = 'https://cashdex-ztjv.vercel.app/callback';
     const authUrl = `${process.env.LARABANK_AUTH_URL}?response_type=code&client_id=${process.env.LARABANK_CLIENT_ID}&redirect_uri=${redirectUri}&scope=accounts`;
     res.redirect(authUrl);
 });
 
+// Rota de retorno (Callback) do LaraBank
 app.get('/callback', async (req, res) => {
     const { code } = req.query;
     if (!code) return res.redirect('/home?erro=sem_codigo');
 
     try {
+        // Troca o código pelo Token de acesso
         const response = await axios.post(process.env.LARABANK_TOKEN_URL, {
             grant_type: 'authorization_code',
             code: code,
@@ -35,11 +39,15 @@ app.get('/callback', async (req, res) => {
         });
 
         const token = response.data.access_token;
+
+        // Busca os dados da conta no LaraBank usando o Token
         const accountRes = await axios.get(process.env.LARABANK_ACCOUNTS_URL, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
-        const conta = accountRes.data[0];
+        const conta = accountRes.data[0]; // Pega a primeira conta retornada
+        
+        // Redireciona para a home enviando os dados do banco externo via URL
         res.redirect(`/home?conectado=true&banco=LaraBank&saldo=${conta.balance}`);
     } catch (error) {
         console.error('Erro Open Finance:', error.response?.data || error.message);
@@ -47,7 +55,7 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-// --- ROTAS ORIGINAIS ---
+// --- API DO SISTEMA BANCÁRIO (CASHDEX) ---
 
 app.post('/cadastro-api', async (req, res) => {
   const { nome, email, cpf, senha, endereco, nascimento } = req.body;
@@ -60,7 +68,7 @@ app.post('/cadastro-api', async (req, res) => {
     );
     res.status(201).json({ mensagem: 'Usuário cadastrado!' });
   } catch (error) {
-    res.status(400).json({ erro: 'Erro ao cadastrar.' });
+    res.status(400).json({ erro: 'Erro ao cadastrar. CPF ou Email já existem.' });
   }
 });
 
@@ -96,13 +104,36 @@ app.get('/extrato/:cpf', async (req, res) => {
 
 app.post('/deposito', async (req, res) => {
   const { cpf, valor } = req.body;
-  const result = await pool.query('UPDATE usuarios SET saldo = saldo + $1 WHERE cpf = $2 RETURNING saldo', [valor, cpf]);
-  await pool.query('INSERT INTO transacoes (cpf_usuario, tipo, valor) VALUES ($1, $2, $3)', [cpf, 'Depósito', valor]);
-  res.json({ mensagem: "Sucesso", novoSaldo: result.rows[0].saldo });
+  try {
+    const result = await pool.query('UPDATE usuarios SET saldo = saldo + $1 WHERE cpf = $2 RETURNING saldo', [valor, cpf]);
+    await pool.query('INSERT INTO transacoes (cpf_usuario, tipo, valor) VALUES ($1, $2, $3)', [cpf, 'Depósito', valor]);
+    res.json({ mensagem: "Sucesso", novoSaldo: result.rows[0].saldo });
+  } catch (err) { res.status(500).json({ erro: "Erro ao depositar" }); }
 });
 
 app.post('/saque', async (req, res) => {
   const { cpf, valor } = req.body;
-  const result = await pool.query('UPDATE usuarios SET saldo = saldo - $1 WHERE cpf = $2 RETURNING saldo', [valor, cpf]);
-  await pool.query('INSERT INTO transacoes (cpf_usuario, tipo, valor) VALUES ($1, $2, $3)', [cpf, 'Saque', valor]);
-  res.json({ mensagem: "Sucesso", novoSaldo: result.rows[0].saldo });
+  try {
+    const result = await pool.query('UPDATE usuarios SET saldo = saldo - $1 WHERE cpf = $2 RETURNING saldo', [valor, cpf]);
+    await pool.query('INSERT INTO transacoes (cpf_usuario, tipo, valor) VALUES ($1, $2, $3)', [cpf, 'Saque', valor]);
+    res.json({ mensagem: "Sucesso", novoSaldo: result.rows[0].saldo });
+  } catch (err) { res.status(500).json({ erro: "Erro ao sacar" }); }
+});
+
+app.post('/transferencia', async (req, res) => {
+  const { cpfOrigem, cpfDestino, valor } = req.body;
+  const destLimpo = cpfDestino.replace(/\D/g, '');
+  try {
+    await pool.query('BEGIN');
+    await pool.query('UPDATE usuarios SET saldo = saldo - $1 WHERE cpf = $2', [valor, cpfOrigem]);
+    await pool.query('UPDATE usuarios SET saldo = saldo + $1 WHERE cpf = $2', [valor, destLimpo]);
+    await pool.query('INSERT INTO transacoes (cpf_usuario, tipo, valor) VALUES ($1, $2, $3)', [cpfOrigem, `Transferência Enviada`, valor]);
+    await pool.query('COMMIT');
+    res.json({ mensagem: "Transferência realizada com sucesso!" });
+  } catch (err) {
+    await pool.query('ROLLBACK');
+    res.status(500).json({ erro: "Erro na transferência" });
+  }
+});
+
+module.exports = app;
