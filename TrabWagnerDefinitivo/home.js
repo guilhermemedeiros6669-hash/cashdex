@@ -1,4 +1,3 @@
-// Pega os dados do usuário salvos no login
 const nome = localStorage.getItem('nomeUsuario');
 const cpf = localStorage.getItem('cpfUsuario');
 
@@ -6,50 +5,52 @@ if (!cpf) {
     window.location.href = "/";
 }
 
-document.getElementById('boasVindas').innerText = nome;
+if (document.getElementById('boasVindas')) {
+    document.getElementById('boasVindas').innerText = nome;
+}
 
-// Verifica se há dados de Open Finance na URL após o redirecionamento
+// Lógica de exibição do Card Open Finance vindo da URL
 const params = new URLSearchParams(window.location.search);
 if (params.get('conectado') === 'true') {
     const card = document.getElementById('cardOpenFinance');
-    const nomeBanco = params.get('banco');
-    const saldoExterno = params.get('saldo');
-
-    card.style.display = 'block';
-    document.getElementById('nomeBancoExterno').innerText = nomeBanco;
-    document.getElementById('saldoExterno').innerText = `R$ ${parseFloat(saldoExterno).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+    if (card) {
+        card.style.display = 'block';
+        document.getElementById('nomeBancoExterno').innerText = params.get('banco');
+        const saldoValue = parseFloat(params.get('saldo'));
+        document.getElementById('saldoExterno').innerText = `R$ ${saldoValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+    }
 }
 
 async function carregarDados() {
-    // Carregar Saldo
-    const resSaldo = await fetch(`/saldo/${cpf}`);
-    const dadosSaldo = await resSaldo.json();
-    document.getElementById('saldo').innerText = `R$ ${dadosSaldo.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+    try {
+        const resSaldo = await fetch(`/saldo/${cpf}`);
+        const dadosSaldo = await resSaldo.json();
+        document.getElementById('saldo').innerText = `R$ ${dadosSaldo.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
 
-    // Carregar Extrato
-    const resExtrato = await fetch(`/extrato/${cpf}`);
-    const extrato = await resExtrato.json();
-    const lista = document.getElementById('listaTransacoes');
-    lista.innerHTML = extrato.map(t => `
-        <li>
-            <span>${t.tipo}</span>
-            <span style="color: ${t.tipo === 'Depósito' ? '#22c55e' : '#ef4444'}">
-                ${t.tipo === 'Depósito' ? '+' : '-'} R$ ${parseFloat(t.valor).toFixed(2)}
-            </span>
-        </li>
-    `).join('') || '<li>Nenhuma transação recente</li>';
+        const resExtrato = await fetch(`/extrato/${cpf}`);
+        const extrato = await resExtrato.json();
+        const lista = document.getElementById('listaTransacoes');
+        
+        lista.innerHTML = extrato.map(t => `
+            <li>
+                <span>${t.tipo}</span>
+                <span style="color: ${t.tipo === 'Depósito' ? '#22c55e' : '#ef4444'}">
+                    ${t.tipo === 'Depósito' ? '+' : '-'} R$ ${parseFloat(t.valor).toFixed(2)}
+                </span>
+            </li>
+        `).join('') || '<li>Nenhuma transação recente</li>';
+    } catch (err) {
+        console.error("Erro ao carregar dados:", err);
+    }
 }
 
 function abrirOpenFinance() {
-    // Redireciona para a rota do backend que inicia o OAuth
-    window.location.href = "/conectar-larabank";
+    window.location.href = window.location.origin + "/conectar-larabank";
 }
 
 function sair() {
     localStorage.clear();
     window.location.href = "/";
 }
-
-// Funções de operação (saque/deposito/transferencia) seguem a mesma lógica de fetch...
 
 carregarDados();
