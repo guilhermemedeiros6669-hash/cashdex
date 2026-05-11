@@ -1,32 +1,29 @@
 const loginForm = document.getElementById('loginForm');
 
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const cpfUrl = urlParams.get('cpf');
-    if (cpfUrl) document.getElementById('cpfLogin').value = cpfUrl;
-});
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cpf = document.getElementById('cpf').value.replace(/\D/g, '');
+        const senha = document.getElementById('senha').value;
 
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const cpf = document.getElementById('cpfLogin').value.replace(/\D/g, ''); // Limpa CPF
-    const senha = document.getElementById('senhaLogin').value;
+        try {
+            const res = await fetch('/login-api', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cpf, senha })
+            });
 
-    try {
-        const resposta = await fetch('http://localhost:3000/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cpf, senha })
-        });
+            const dados = await res.json();
 
-        const resultado = await resposta.json();
-        if (resposta.ok) {
-            localStorage.setItem('nomeUsuario', resultado.nome);
-            localStorage.setItem('cpfUsuario', resultado.cpf);
-            window.location.href = 'home.html';
-        } else {
-            alert(resultado.erro);
+            if (res.ok) {
+                localStorage.setItem('nomeUsuario', dados.nome);
+                localStorage.setItem('cpfUsuario', dados.cpf);
+                window.location.href = 'home.html';
+            } else {
+                alert(dados.erro);
+            }
+        } catch (err) {
+            alert("Erro ao conectar com o servidor.");
         }
-    } catch (err) {
-        alert("Erro de conexão.");
-    }
-});
+    });
+}
