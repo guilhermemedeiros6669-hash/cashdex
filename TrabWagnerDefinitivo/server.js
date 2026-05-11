@@ -3,7 +3,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const axios = require('axios'); // Adicionado para Open Finance
+const axios = require('axios');
 
 const app = express();
 app.use(cors());
@@ -15,13 +15,12 @@ const pool = new Pool({
 
 // --- OPEN FINANCE (LARABANK) ---
 
-// Inicia o fluxo de autorização
 app.get('/conectar-larabank', (req, res) => {
-    const authUrl = `${process.env.LARABANK_AUTH_URL}?response_type=code&client_id=${process.env.LARABANK_CLIENT_ID}&redirect_uri=https://cashdex-ztjv.vercel.app/callback&scope=accounts`;
+    const redirectUri = 'https://cashdex-ztjv.vercel.app/callback';
+    const authUrl = `${process.env.LARABANK_AUTH_URL}?response_type=code&client_id=${process.env.LARABANK_CLIENT_ID}&redirect_uri=${redirectUri}&scope=accounts`;
     res.redirect(authUrl);
 });
 
-// Recebe o código do LaraBank e troca por um Token
 app.get('/callback', async (req, res) => {
     const { code } = req.query;
     if (!code) return res.redirect('/home?erro=sem_codigo');
@@ -36,15 +35,11 @@ app.get('/callback', async (req, res) => {
         });
 
         const token = response.data.access_token;
-        
-        // Busca os dados da conta usando o Token recebido
         const accountRes = await axios.get(process.env.LARABANK_ACCOUNTS_URL, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
-        const conta = accountRes.data[0]; // Pega a primeira conta vinculada
-        
-        // Redireciona de volta para a Home enviando os dados do banco externo via URL
+        const conta = accountRes.data[0];
         res.redirect(`/home?conectado=true&banco=LaraBank&saldo=${conta.balance}`);
     } catch (error) {
         console.error('Erro Open Finance:', error.response?.data || error.message);
@@ -52,7 +47,7 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-// --- ROTAS ORIGINAIS (MANTIDAS) ---
+// --- ROTAS ORIGINAIS ---
 
 app.post('/cadastro-api', async (req, res) => {
   const { nome, email, cpf, senha, endereco, nascimento } = req.body;
@@ -65,7 +60,7 @@ app.post('/cadastro-api', async (req, res) => {
     );
     res.status(201).json({ mensagem: 'Usuário cadastrado!' });
   } catch (error) {
-    res.status(400).json({ erro: 'Erro ao cadastrar. CPF ou Email já existem.' });
+    res.status(400).json({ erro: 'Erro ao cadastrar.' });
   }
 });
 
@@ -88,7 +83,7 @@ app.post('/login-api', async (req, res) => {
 app.get('/saldo/:cpf', async (req, res) => {
   try {
     const result = await pool.query('SELECT saldo FROM usuarios WHERE cpf = $1', [req.params.cpf]);
-    res.json({ saldo: result.rows[0]?.saldo || 0 });
+    res.json({ saldo: parseFloat(result.rows[0]?.saldo || 0) });
   } catch (err) { res.status(500).send(); }
 });
 
@@ -103,25 +98,11 @@ app.post('/deposito', async (req, res) => {
   const { cpf, valor } = req.body;
   const result = await pool.query('UPDATE usuarios SET saldo = saldo + $1 WHERE cpf = $2 RETURNING saldo', [valor, cpf]);
   await pool.query('INSERT INTO transacoes (cpf_usuario, tipo, valor) VALUES ($1, $2, $3)', [cpf, 'Depósito', valor]);
-  res.json({ mensagem: "Depósito realizado!", novoSaldo: result.rows[0].saldo });
+  res.json({ mensagem: "Sucesso", novoSaldo: result.rows[0].saldo });
 });
 
 app.post('/saque', async (req, res) => {
   const { cpf, valor } = req.body;
   const result = await pool.query('UPDATE usuarios SET saldo = saldo - $1 WHERE cpf = $2 RETURNING saldo', [valor, cpf]);
   await pool.query('INSERT INTO transacoes (cpf_usuario, tipo, valor) VALUES ($1, $2, $3)', [cpf, 'Saque', valor]);
-  res.json({ mensagem: "Saque realizado!", novoSaldo: result.rows[0].saldo });
-});
-
-app.post('/transferencia', async (req, res) => {
-  const { cpfOrigem, cpfDestino, valor } = req.body;
-  const destLimpo = cpfDestino.replace(/\D/g, '');
-  await pool.query('BEGIN');
-  await pool.query('UPDATE usuarios SET saldo = saldo - $1 WHERE cpf = $2', [valor, cpfOrigem]);
-  await pool.query('UPDATE usuarios SET saldo = saldo + $1 WHERE cpf = $2', [valor, destLimpo]);
-  await pool.query('INSERT INTO transacoes (cpf_usuario, tipo, valor) VALUES ($1, $2, $3)', [cpfOrigem, `Transferência`, valor]);
-  await pool.query('COMMIT');
-  res.json({ mensagem: "Transferência realizada!" });
-});
-
-module.exports = app;
+  res.json({ mensagem: "Sucesso", novoSaldo: result.rows[0].saldo });
