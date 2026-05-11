@@ -16,21 +16,24 @@ if (loginForm) {
                 body: JSON.stringify({ cpf, senha })
             });
 
+            // Tenta ler a resposta do servidor
             const dados = await res.json();
 
             if (res.ok) {
-                // Salva os dados na sessão do navegador
+                // Salva os dados na sessão do navegador (localStorage)
                 localStorage.setItem('nomeUsuario', dados.nome);
                 localStorage.setItem('cpfUsuario', dados.cpf);
                 
-                // Redireciona para a rota amigável da Home
-                window.location.href = "/home"; 
+                // Redireciona para a rota configurada no vercel.json
+                // Usamos o caminho absoluto para evitar erros de pasta
+                window.location.href = window.location.origin + "/home"; 
             } else {
                 // Exibe erro vindo do banco de dados (ex: senha incorreta)
                 alert(dados.erro || "Falha no login");
             }
         } catch (err) {
-            alert("Erro ao conectar com o servidor. Verifique sua conexão.");
+            console.error("Erro no login:", err);
+            alert("Servidor desligado ou erro de conexão.");
         }
     });
 }
