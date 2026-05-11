@@ -17,6 +17,7 @@
     { "source": "/saque", "destination": "server.js" },
     { "source": "/transferencia", "destination": "server.js" },
     { "source": "/conectar-larabank", "destination": "server.js" },
+    { "source": "/conectar-deas", "destination": "server.js" },
     { "source": "/callback", "destination": "server.js" },
     { "source": "/home", "destination": "home.html" },
     { "source": "/cadastro", "destination": "cadastro.html" },
