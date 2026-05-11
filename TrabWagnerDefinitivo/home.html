@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>CashDex - Dashboard</title>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h2>Bem-vindo ao CashDex, <span id="boasVindas">...</span></h2>
+            <button onclick="sair()" class="btn-outline" style="padding: 5px 15px;">Sair</button>
+        </header>
+        
+        <div class="cards">
+            <div class="card">
+                <h3>Saldo CashDex</h3>
+                <p id="saldo">R$ 0,00</p>
+            </div>
+
+            <div class="card" id="cardOpenFinance" style="display: none; border: 1px solid #007bff; background: rgba(0, 123, 255, 0.1);">
+                <h3 id="nomeBancoExterno">Banco Conectado</h3>
+                <p id="saldoExterno" style="font-weight: bold; color: #007bff;">R$ 0,00</p>
+            </div>
+
+            <div class="card">
+                <h3>Status da Conta</h3>
+                <p id="status">Regular</p>
+            </div>
+        </div>
+
+        <section class="transacoes">
+            <h3>Últimas Transações</h3>
+            <ul id="listaTransacoes">
+                <li style="color: #94a3b8; font-size: 0.8rem;">Carregando histórico...</li>
+            </ul>
+        </section>
+        
+        <nav class="acoes">
+            <button onclick="operacao('saque')" class="btn-outline">Saque</button>
+            <button onclick="operacao('deposito')" class="btn-outline">Depósito</button>
+            <button onclick="transferir()" class="btn-primary">Transferência</button>
+            <button onclick="abrirOpenFinance()" style="background-color: #007bff; color: white; grid-column: span 2; font-weight: bold;">Conectar Open Finance</button>
+        </nav>
+    </div>
+
+    <script src="home.js"></script>
+</body>
+</html>
