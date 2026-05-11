@@ -4,36 +4,42 @@ if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Limpa o CPF para garantir que apenas números sejam enviados
-        const cpf = document.getElementById('cpf').value.replace(/\D/g, '');
-        const senha = document.getElementById('senha').value;
+        // Agora os IDs batem com o HTML: 'cpf' e 'senha'
+        const campoCpf = document.getElementById('cpf');
+        const campoSenha = document.getElementById('senha');
+
+        if (!campoCpf || !campoSenha) {
+            console.error("Erro: Campos não encontrados no HTML.");
+            return;
+        }
+
+        const cpf = campoCpf.value.replace(/\D/g, '');
+        const senha = campoSenha.value;
 
         try {
-            // Chamada para a rota configurada no vercel.json
+            console.log("Tentando login para o CPF:", cpf); // Para você acompanhar no F12
+
             const res = await fetch('/login-api', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cpf, senha })
             });
 
-            // Tenta ler a resposta do servidor
             const dados = await res.json();
 
             if (res.ok) {
-                // Salva os dados na sessão do navegador (localStorage)
+                console.log("Login bem-sucedido!");
                 localStorage.setItem('nomeUsuario', dados.nome);
                 localStorage.setItem('cpfUsuario', dados.cpf);
                 
-                // Redireciona para a rota configurada no vercel.json
-                // Usamos o caminho absoluto para evitar erros de pasta
+                // Redireciona usando a rota do vercel.json
                 window.location.href = window.location.origin + "/home"; 
             } else {
-                // Exibe erro vindo do banco de dados (ex: senha incorreta)
-                alert(dados.erro || "Falha no login");
+                alert(dados.erro || "CPF ou senha incorretos.");
             }
         } catch (err) {
-            console.error("Erro no login:", err);
-            alert("Servidor desligado ou erro de conexão.");
+            console.error("Erro na conexão:", err);
+            alert("Erro ao conectar com o servidor. Verifique a DATABASE_URL na Vercel.");
         }
     });
 }
