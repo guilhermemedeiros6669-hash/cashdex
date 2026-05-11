@@ -7,9 +7,6 @@
     { "src": "*.css", "use": "@vercel/static" }
   ],
   "rewrites": [
-    { "source": "/", "destination": "login.html" },
-    { "source": "/home", "destination": "home.html" },
-    { "source": "/cadastro", "destination": "cadastro.html" },
     { "source": "/cadastro-api", "destination": "server.js" },
     { "source": "/login-api", "destination": "server.js" },
     { "source": "/saldo/(.*)", "destination": "server.js" },
@@ -18,6 +15,9 @@
     { "source": "/saque", "destination": "server.js" },
     { "source": "/transferencia", "destination": "server.js" },
     { "source": "/conectar-larabank", "destination": "server.js" },
-    { "source": "/callback", "destination": "server.js" }
+    { "source": "/callback", "destination": "server.js" },
+    { "source": "/home", "destination": "home.html" },
+    { "source": "/cadastro", "destination": "cadastro.html" },
+    { "source": "/", "destination": "login.html" }
   ]
 }
